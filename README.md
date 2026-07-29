@@ -18,6 +18,9 @@ In addition, participants are welcome to incorporate external datasets for train
 
 ## Data
 
+
+Please check out [data installation instructions](./data/INSTALL.md).
+
 ### Images
 
 Each .nii.gz file contains a single 3D reconstructed volume stored as 16-bit unsigned integer voxel intensities. Note that acquisition and reconstruction parameters vary across the dataset, so images are not all the same size or resolution:
