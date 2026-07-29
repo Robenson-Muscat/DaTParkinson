@@ -22,8 +22,8 @@ In addition, participants are welcome to incorporate external datasets for train
 
 Each .nii.gz file contains a single 3D reconstructed volume stored as 16-bit unsigned integer voxel intensities. Note that acquisition and reconstruction parameters vary across the dataset, so images are not all the same size or resolution:
 
-    Volume dimensions differ from scan to scan (for example, 142 × 142 × 112 or 128 × 128 × 128). Your pipeline should not assume a fixed input shape.
-    Voxel spacing also varies (e.g., 2.46 mm and 3.895 mm isotropic), reflecting differences in scanners and acquisition protocols across contributing centers. The spacing is recorded in each file's NIfTI header and may be useful for resampling images to a common resolution.
+Volume dimensions differ from scan to scan (for example, 142 × 142 × 112 or 128 × 128 × 128). Your pipeline should not assume a fixed input shape.
+Voxel spacing also varies (e.g., 2.46 mm and 3.895 mm isotropic), reflecting differences in scanners and acquisition protocols across contributing centers. The spacing is recorded in each file's NIfTI header and may be useful for resampling images to a common resolution.
 
 These differences are a normal consequence of pooling data from multiple institutions, and building models that generalize across them is part of the challenge.
 
@@ -31,8 +31,8 @@ These differences are a normal consequence of pooling data from multiple institu
 
 train_labels.csv contains one row per DaT scan examination in the training set, with the following columns:
 
-    uid (str) — unique identifier for each DaT scan examination; matches the image filename without the .nii.gz extension
-    is_pathologic (float) — classification of the DaT scan examination, where 0.0 = Normal and 1.0 = abnormal
+uid (str) — unique identifier for each DaT scan examination; matches the image filename without the .nii.gz extension
+is_pathologic (float) — classification of the DaT scan examination, where 0.0 = Normal and 1.0 = abnormal
 
 
 Label example — the first five rows of train_labels.csv:
