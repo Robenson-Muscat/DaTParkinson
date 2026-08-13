@@ -1,7 +1,5 @@
-from sklearn.metrics import (
-    roc_auc_score,
-    log_loss
-)
+from sklearn.metrics import roc_auc_score,log_loss
+import numpy as np
 
 
 def compute_metrics(
