@@ -3,20 +3,26 @@
 ![Python](https://img.shields.io/badge/Python-blue)
 
 
-## Overview
+## Context
 
 Parkinsonian syndromes affect millions of people worldwide, yet diagnosing them accurately and early remains challenging. Dopamine transporter (DaT) imaging is an important tool for distinguishing neurodegenerative parkinsonian syndromes from other conditions, but reliable interpretation requires specialized expertise that is not available everywhere.
 
 Each year, more than 20,000 DaT scans are performed in France alone. While many can be classified as normal or abnormal, approximately one in five cases remains difficult to interpret — particularly in early-stage or atypical presentations — delaying diagnosis, complicating treatment decisions, and increasing demands on specialist readers.
 
+We want to advanece AI tools for DaT scan interpretation. 
 
-## Goal (or Task)
-In this challenge, we invite data scientists, machine learning engineers, medical imaging researchers, and nuclear medicine specialists to advance AI tools for DaT scan interpretation. Using a unique multicenter dataset of scans collected and annotated by French experts across ten hospital centers in France, the goal is to develop computer vision models that classify DaT scans as normal or abnormal.
+
+![Examaple of a DaT SCAN](images/competition_logo.png).
+
+
+## Goal
+Using a unique multicenter dataset of scans collected and annotated by French experts across ten hospital centers in France, the goal is to develop computer vision models that classify DaT scans as normal or abnormal.
 
 
 The imaging data are provided as three-dimensional DaT scan reconstructions in compressed Neuroimaging Informatics Technology Initiative (NIfTI) format (.nii.gz). Each examination is a single 3D volume, and each patient is represented by one file. The filename (minus the .nii.gz extension) is the uid that links each image to its label.
 
 In addition, participants are welcome to incorporate external datasets for training; however, use of external data is subject to important exceptions and caveats.
+
 
 ## Data
 
@@ -71,7 +77,7 @@ Leaderboard performance is evaluated according to log loss. Log loss (a.k.a. log
 
 Log loss for a single observation is calculated as follows:
 
-$$L_{\mathrm{log}}(y,p)=-\left[y\log(p) + (1-y)\log(1-p)\right]$$
+$L_{\mathrm{log}}(y,p)=-\left[y\log(p) + (1-y)\log(1-p)\right]$
 
 where 𝑦 is a binary variable indicating whether the examination is abnormal (1) or normal (0), and 𝑝 is the user-predicted probability that the examination is abnormal. The loss for the entire dataset is the average loss across all observations.
 
