@@ -1,5 +1,7 @@
 # DaTParkinson
 
+![Python 3.12](https://img.shields.io/badge/Python-3.12-blue)
+
 
 ## Overview
 
@@ -35,16 +37,24 @@ These differences are a normal consequence of pooling data from multiple institu
 train_labels.csv contains one row per DaT scan examination in the training set, with the following columns:
 
 uid (str) — unique identifier for each DaT scan examination; matches the image filename without the .nii.gz extension
-is_pathologic (float) — classification of the DaT scan examination, where 0.0 = Normal and 1.0 = abnormal
+is_pathologic (float) — classification of the DaT scan examination, where 0.0 = Normal and 1.0 = Abnormal
 
 
 Label example — the first five rows of train_labels.csv:
-uid	is_pathologic
-xaji0y6d	0.0
-pbhsahxt	0.0
-hv3a3zmf	0.0
-8mdd4v30	0.0
-t9nt3w5u	1.0
+
+| uid      | is_pathologic |
+| -------- | ------------: |
+| xaji0y6d |           0.0 |
+| pbhsahxt |           0.0 |
+| hv3a3zmf |           0.0 |
+| 8mdd4v30 |           0.0 |
+| t9nt3w5u |           1.0 |
+
+where:
+
+* `uid` — unique identifier for each DaT scan examination; matches the image filename without the `.nii.gz` extension.
+* `is_pathologic` — classification of the DaT scan examination, where `0.0` = Normal and `1.0` = Abnormal.
+
 
 
 ### Test set
@@ -61,7 +71,7 @@ Leaderboard performance is evaluated according to log loss. Log loss (a.k.a. log
 
 Log loss for a single observation is calculated as follows:
 
-𝐿log⁡(𝑦,𝑝)=−(𝑦⁢log⁡(𝑝)+(1−𝑦)⁢log⁡(1−𝑝))
+𝐿_log⁡(𝑦,𝑝)=−(𝑦⁢log⁡(𝑝)+(1−𝑦)⁢log⁡(1−𝑝))
 
 where 𝑦 is a binary variable indicating whether the examination is abnormal (1) or normal (0), and 𝑝 is the user-predicted probability that the examination is abnormal. The loss for the entire dataset is the average loss across all observations.
 
