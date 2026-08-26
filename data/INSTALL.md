@@ -2,10 +2,9 @@
 
 ## 1. Download datasets
 
-Download the required datasets (training set) and ground truth file:
+Download the required datasets (training set and smoke test set) and ground truth file:
 
 https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/data/
-
 
 Then, remove the downloaded files in your current repository DaTParkinson/. 
 
@@ -17,7 +16,6 @@ Create the destination directories
 ```
 mkdir -p smoke_test_data/ data/niftis/
 ```
-
 
 ```
 unzip niftis_utCGpHE.zip -d data/niftis/
@@ -63,14 +61,11 @@ data/
 
 
 
-## Test set
 
-    > The test set is withheld and is not available for download. Its images are only accessible from within the runtime container,
-    >  where they are mounted alongside the training data. Because this is a code execution challenge, you will not see  
-    > the test examinations directly — your submitted code reads them at inference time and generates predictions for each one.
-    > The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file,
-    > named <uid>.nii.gz, with varying dimensions and voxel spacing).
+## Test set
 
 The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data. Because this is a code execution challenge, you will not see the test examinations directly — your submitted code reads them at inference time and generates predictions for each one.
 
 The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing).
+
+For additional debugging, a "smoke test" environment that replicates the test inference runtime has been provided. It runs only on a small set of examinations. In the smoke test environment, the test data structure is the same (`niftis/` and `submission_format.csv`), but the available data represents a small sample drawn from the training set rather than the full test set.
