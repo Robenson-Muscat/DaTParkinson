@@ -1,6 +1,6 @@
 # DaTParkinson
 
-![Python 3.12](https://img.shields.io/badge/Python-3.12-blue)
+![Python](https://img.shields.io/badge/Python-blue)
 
 
 ## Overview
@@ -11,7 +11,7 @@ Each year, more than 20,000 DaT scans are performed in France alone. While many 
 
 
 ## Goal (or Task)
-In this challenge, we invite data scientists, machine learning engineers, medical imaging researchers, and nuclear medicine specialists to advance AI tools for DaT scan interpretation. Using a unique multicenter dataset of scans collected and annotated by French experts across ten hospital centers in France, your goal is to develop computer vision models that classify DaT scans as normal or abnormal.
+In this challenge, we invite data scientists, machine learning engineers, medical imaging researchers, and nuclear medicine specialists to advance AI tools for DaT scan interpretation. Using a unique multicenter dataset of scans collected and annotated by French experts across ten hospital centers in France, the goal is to develop computer vision models that classify DaT scans as normal or abnormal.
 
 
 The imaging data are provided as three-dimensional DaT scan reconstructions in compressed Neuroimaging Informatics Technology Initiative (NIfTI) format (.nii.gz). Each examination is a single 3D volume, and each patient is represented by one file. The filename (minus the .nii.gz extension) is the uid that links each image to its label.
