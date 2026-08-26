@@ -71,7 +71,7 @@ Leaderboard performance is evaluated according to log loss. Log loss (a.k.a. log
 
 Log loss for a single observation is calculated as follows:
 
-𝐿_log⁡(𝑦,𝑝)=−(𝑦⁢log⁡(𝑝)+(1−𝑦)⁢log⁡(1−𝑝))
+$$L_{\mathrm{log}}(y,p)=-\left[y\log(p) + (1-y)\log(1-p)\right]$$
 
 where 𝑦 is a binary variable indicating whether the examination is abnormal (1) or normal (0), and 𝑝 is the user-predicted probability that the examination is abnormal. The loss for the entire dataset is the average loss across all observations.
 
