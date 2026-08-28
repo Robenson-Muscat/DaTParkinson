@@ -4,7 +4,7 @@
   <h1>DaTParkinson : AI-based classification of DaT scans for the detection of parkinsonian syndromes </h1>
 
 
-  <img src="images/competition_logo.png" alt="Example of an abdominal CT scan" width="400">
+  <img src="images/competition_logo.png" alt="Example of an abdominal CT scan" width="150">
 
   <br>
 
