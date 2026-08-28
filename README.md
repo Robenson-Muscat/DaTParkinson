@@ -75,6 +75,21 @@ $L_{\mathrm{log}}(y,p)=-\left[y\log(p) + (1-y)\log(1-p)\right]$
 
 where 𝑦 is a binary variable indicating whether the examination is abnormal (1) or normal (0), and 𝑝 is the user-predicted probability that the examination is abnormal. The loss for the entire dataset is the average loss across all observations.
 
+## Training and inference
+
+```
+python train.py
+```
+The checkpoints are saved in the folder `ckpts/`.
+
+The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data.  Because this is a code execution challenge, you will not see the test examinations directly — your submitted code reads them at inference time and generates predictions for each one.
+
+The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing)
+
+The file `inference.py` is predicated on the code submission format.
+
 ## Method
 
 Work in progress...
+
+
