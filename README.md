@@ -1,7 +1,14 @@
-# DaTParkinson
 
-![Python](https://img.shields.io/badge/Python-blue)
+<div align="center">
 
+  <h1>DaTParkinson : AI-based classification of DaT scans for the detection of parkinsonian syndromes </h1>
+
+
+  <img src="images/competition_logo.png" alt="Example of an abdominal CT scan" width="400">
+
+  <br>
+
+</div>
 
 ## Context
 
@@ -10,9 +17,6 @@ Parkinsonian syndromes affect millions of people worldwide, yet diagnosing them 
 Each year, more than 20,000 DaT scans are performed in France alone. While many can be classified as normal or abnormal, approximately one in five cases remains difficult to interpret — particularly in early-stage or atypical presentations — delaying diagnosis, complicating treatment decisions, and increasing demands on specialist readers.
 
 We want to advance AI tools for DaT scan interpretation. 
-
-
-![Example of a DaT SCAN](images/competition_logo.png).
 
 
 ## Goal
