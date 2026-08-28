@@ -82,12 +82,11 @@ python train.py
 ```
 The checkpoints are saved in the folder `ckpts/`.
 
-The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data.  Because this is a code execution challenge, you will not see the test examinations directly — your submitted code reads them at inference time and generates predictions for each one.
+The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data.  Because this is a code execution challenge, you will not see the test examinations directly. Instead, your submitted code reads the test images at inference time and generates predictions for each one.
 
-The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing)
+The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing).
 
-The file `inference.py` is predicated on the code submission format.
-
+The inference.py file is designed to comply with the code submission format. Please check out the following [website](https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/page/989/) for more details
 ## Method
 
 Work in progress...
