@@ -12,7 +12,7 @@ Each year, more than 20,000 DaT scans are performed in France alone. While many 
 We want to advance AI tools for DaT scan interpretation. 
 
 
-![Examaple of a DaT SCAN](images/competition_logo.png).
+![Example of a DaT SCAN](images/competition_logo.png).
 
 
 ## Goal
@@ -22,6 +22,7 @@ Using a unique multicenter dataset of scans collected and annotated by French ex
 The imaging data are provided as three-dimensional DaT scan reconstructions in compressed Neuroimaging Informatics Technology Initiative (NIfTI) format (.nii.gz). Each examination is a single 3D volume, and each patient is represented by one file. The filename (minus the .nii.gz extension) is the uid that links each image to its label.
 
 In addition, participants are welcome to incorporate external datasets for training; however, use of external data is subject to important exceptions and caveats.
+
 
 
 ## Data
@@ -76,4 +77,4 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 
 ## Method
 
-
+Work in progress...
