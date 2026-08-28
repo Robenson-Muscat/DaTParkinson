@@ -34,14 +34,8 @@ TARGET_SIZE = (112, 112, 80)
 
 class DATScanModel:
     """
-    Model wrapper for Parkinson DAT-scan classification.
+    Model wrapper for Parkinson DAT-scan classification (DenseNet121 3D architecture).
 
-    The wrapper:
-      - creates the same DenseNet121 3D architecture as training
-      - applies the same preprocessing
-      - loads one or several checkpoints
-      - predicts probabilities
-      - averages predictions when several checkpoints are provided
     """
 
     def __init__(
@@ -194,24 +188,23 @@ class DATScanModel:
         ])
         
 
-    def predict_one(
-        self,
-        nifti_path: Path,
-    ) -> float:
+    def predict_one(self,nifti_path: Path,) -> float:
+        """
+        Predicts probabilities and averages predictions when several checkpoints are provided
+        """
 
         transforms = self._create_transforms()
 
         image = transforms(str(nifti_path))
 
         # image shape:
-        # [1, 96, 96, 96]
+        # [1, 112, 112, 80]
         image = torch.as_tensor(
             np.asarray(image),
-            dtype=torch.float32,
-        )
+            dtype=torch.float32)
 
         # Add batch dimension:
-        # [1, 1, 96, 96, 96]
+        # [1, 1, 112, 112, 80]
         image = image.unsqueeze(0)
 
         image = image.to(self.device)
@@ -230,7 +223,7 @@ class DATScanModel:
                 #logits = model(image)
                 #probabilities.append(torch.sigmoid(logits).squeeze().item())
 
-        # Ensemble = arithmetic mean
+        
         return float(np.mean(predictions))
 
     def predict(
