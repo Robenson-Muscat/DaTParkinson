@@ -10,13 +10,9 @@ DATA_DIR = Path("/code_execution/data")
 
 NIFTI_DIR = DATA_DIR / "niftis"
 
-SUBMISSION_FORMAT_PATH = (
-    DATA_DIR / "submission_format.csv"
-)
+SUBMISSION_FORMAT_PATH = (DATA_DIR / "submission_format.csv")
 
-WRITE_SUBMISSION_PATH = Path(
-    "submission.csv"
-)
+WRITE_SUBMISSION_PATH = Path("submission.csv")
 
 SRC_ROOT = Path(__file__).parent.resolve()
 
@@ -26,7 +22,7 @@ SRC_ROOT = Path(__file__).parent.resolve()
 # ============================================================
 
 CHECKPOINTS = [
-    Path("model/best_DenseNet121_LR_5e-4.pth"),
+    Path("ckpts/best_DATScanModel.pth"),
 
 ]
 
