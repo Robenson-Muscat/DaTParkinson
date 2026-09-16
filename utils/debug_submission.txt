@@ -1,0 +1,431 @@
+ cd competition-sfmn-parkinsons-runtime/
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ just pull
+docker pull competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest
+gpu-latest: Pulling from competition-sfmn-parkinsons-runtime
+Digest: sha256:6937e15926bc97287d0e52749095b630c21d1cb9e42cc736dad768f9718c4c68
+Status: Image is up to date for competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest
+competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ just pack-example minimal
+Are you sure you want to overwrite the existing submission/submission.zip file? (y/n) y
+Overwriting existing submission/submission.zip file.
+rm -f submission/submission.zip
+2026-08-25 13:49:01,353 | rpzip | INFO | adding: main.py
+2026-08-25 13:49:01,380 | rpzip | INFO | adding: model
+2026-08-25 13:49:01,381 | rpzip | INFO | adding: model\model.txt
+2026-08-25 13:49:01,409 | rpzip | INFO | adding: model\model_example.pth
+2026-08-25 13:49:02,432 | rpzip | INFO | adding: src
+2026-08-25 13:49:02,433 | rpzip | INFO | adding: src\__init__.py
+2026-08-25 13:49:02,433 | rpzip | INFO | adding: src\model.py
+Wrote submission/submission.zip based on source files in examples/minimal/
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ just test-submission
+Checking submission image: competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest
+
+Using image: competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest (6937e15926bc)
+┏
+┃ NAME(S)
+┃ competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest}}
+└
+
+Available official images:
+┏
+┃ IMAGE                                                                                        ID             DISK USAGE   CONTENT SIZE   EXTRA
+┃ competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest   6937e15926bc       21.3GB         7.48GB
+└
+
+No local images available
+Run 'just build' to build the image.
+
+mkdir -p submission/
+chmod -R 0777 submission/
+cannot attach stdin to a TTY-enabled container because stdin is not a terminal
+error: recipe `test-submission` failed with exit code 1
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ grep -A 20 "test-submission" Justfile
+test-submission: _check-image _echo-image _submission-write-perms
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ ! -f ./submission/submission.zip ]]; then
+        echo "Error: submission/submission.zip not found. Run 'just pack-example' or 'just pack-submission' first."
+        exit 1
+    fi
+    SUBMISSION_IMAGE_ID=$(docker images -q {{submission_image}})
+    docker run \
+        {{platform_args}} \
+        {{_tty_args}} \
+        {{_gpu_args}} \
+        {{_network_args}} \
+        -e LOGURU_LEVEL=INFO \
+        -e IS_SMOKE_TEST="1" \
+        --mount type=bind,source={{data_dir}},target=/code_execution/data,readonly \
+        --mount type=bind,source="$(pwd)/submission",target=/code_execution/submission \
+        --shm-size 8g \
+        --pid host \
+        --name {{container_name}} \
+        --rm \
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ grep -n -B 3 -A 5 "_tty_args\|_gpu_args" Justfile
+17-
+18-
+19-# Helper functions to detect GPU and TTY
+20:_gpu_args := if `command -v nvidia-smi > /dev/null 2>&1 && echo "1" || echo ""` != "" { "--gpus all" } else { "" }
+21:_tty_args := if env_var_or_default("GITHUB_ACTIONS_NO_TTY", "") != "true" { "-it" } else { "" }
+22-_network_args := if block_internet == "true" { "--network none" } else { "" }
+23-
+24-# Default recipe - show help
+25-_default:
+26-    @just --list
+--
+97-    @echo "official_image={{official_image}}:{{tag}}"
+98-    @echo "local_image={{local_image}}:{{local_tag}}"
+99-    @echo "platform_args={{platform_args}}"
+100:    @echo "_gpu_args={{_gpu_args}}"
+101-    @echo "_network_args={{_network_args}}"
+102-    @echo "data_dir={{data_dir}}"
+103-
+104-# Build the runtime container
+105-[group('development')]
+--
+123-run-tests:
+124-    docker run \
+125-        {{platform_args}} \
+126:        {{_gpu_args}} \
+127-        {{_network_args}} \
+128-        --rm \
+129-        {{local_image}}:test
+130-
+131-# Open an interactive bash shell in the test container
+--
+134-    docker run -it \
+135-        --rm \
+136-        {{platform_args}} \
+137:        {{_gpu_args}} \
+138-        {{_network_args}} \
+139-        {{local_image}}:test \
+140-        bash
+141-
+142-# Update uv lockfile
+--
+215-    SUBMISSION_IMAGE_ID=$(docker images -q {{submission_image}})
+216-    docker run \
+217-        {{platform_args}} \
+218:        {{_tty_args}} \
+219:        {{_gpu_args}} \
+220-        {{_network_args}} \
+221-        -e LOGURU_LEVEL=INFO \
+222-        -e IS_SMOKE_TEST="1" \
+223-        --mount type=bind,source={{data_dir}},target=/code_execution/data,readonly \
+224-        --mount type=bind,source="$(pwd)/submission",target=/code_execution/submission \
+--
+236-    SUBMISSION_IMAGE_ID=$(docker images -q {{submission_image}})
+237-    docker run \
+238-        {{platform_args}} \
+239:        {{_gpu_args}} \
+240-        {{_network_args}} \
+241-        --mount type=bind,source={{data_dir}},target=/code_execution/data,readonly \
+242-        --mount type=bind,source="$(pwd)/submission",target=/code_execution/submission \
+243-        --shm-size 8g \
+244-        --pid host \
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ GITHUB_ACTIONS_NO_TTY=true just test-submission
+Checking submission image: competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest
+
+Using image: competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest (6937e15926bc)
+┏
+┃ NAME(S)
+┃ competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest}}
+└
+
+Available official images:
+┏
+┃ IMAGE                                                                                        ID             DISK USAGE   CONTENT SIZE   EXTRA
+┃ competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest   6937e15926bc       21.3GB         7.48GB
+└
+
+No local images available
+Run 'just build' to build the image.
+
+mkdir -p submission/
+chmod -R 0777 submission/
+docker: Error response from daemon: The system cannot find the path specified.
+
+Run 'docker run --help' for more information
+error: recipe `test-submission` failed with exit code 125
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ sed -n '1,35p' Justfile
+# Settings
+set dotenv-load
+block_internet := env_var_or_default("BLOCK_INTERNET", "true")
+platform_args := "--platform linux/amd64"
+
+tag := "gpu-latest"
+local_tag := "gpu-local"
+
+image_name := "competition-sfmn-parkinsons-runtime"
+official_image := "competitionsfmnparkinsonsprodacr.azurecr.io/" + image_name
+local_image := image_name
+
+# Resolve which image to use
+submission_image := env_var_or_default("SUBMISSION_IMAGE", local_image + ":" + local_tag)
+container_name := env_var_or_default("CONTAINER_NAME", image_name)
+data_dir := env_var_or_default("DATA_DIR", justfile_directory() + "/data-demo")
+
+
+# Helper functions to detect GPU and TTY
+_gpu_args := if `command -v nvidia-smi > /dev/null 2>&1 && echo "1" || echo ""` != "" { "--gpus all" } else { "" }
+_tty_args := if env_var_or_default("GITHUB_ACTIONS_NO_TTY", "") != "true" { "-it" } else { "" }
+_network_args := if block_internet == "true" { "--network none" } else { "" }
+
+# Default recipe - show help
+_default:
+    @just --list
+
+# Helper: Set write permissions on submission folder
+_submission-write-perms:
+    mkdir -p submission/
+    chmod -R 0777 submission/
+
+# Helper: Check if image exists
+_check-image:
+    #!/usr/bin/env bash
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ pwd
+/c/Users/rober/competition-sfmn-parkinsons-runtime
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ pwd -W
+C:/Users/rober/competition-sfmn-parkinsons-runtime
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ cygpath -w "$(pwd)/submission"
+C:\Users\rober\competition-sfmn-parkinsons-runtime\submission
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ docker run --rm \
+  --mount type=bind,source="$(cygpath -w "$(pwd)/submission")",target=/tmp/submission \
+  alpine ls -la /tmp/submission
+ls: C:/Users/rober/AppData/Local/Temp/submission: No such file or directory
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ sed -n '205,235p' Justfile
+
+# Test submission using submission.zip
+[group('* test submission locally')]
+test-submission: _check-image _echo-image _submission-write-perms
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ ! -f ./submission/submission.zip ]]; then
+        echo "Error: submission/submission.zip not found. Run 'just pack-example' or 'just pack-submission' first."
+        exit 1
+    fi
+    SUBMISSION_IMAGE_ID=$(docker images -q {{submission_image}})
+    docker run \
+        {{platform_args}} \
+        {{_tty_args}} \
+        {{_gpu_args}} \
+        {{_network_args}} \
+        -e LOGURU_LEVEL=INFO \
+        -e IS_SMOKE_TEST="1" \
+        --mount type=bind,source="$(cygpath -w '{{data_dir}}')",target=/code_execution/data,readonly \
+        --mount type=bind,source="$(pwd -W)/submission",target=/code_execution/submission \
+        --shm-size 8g \
+        --pid host \
+        --name {{container_name}} \
+        --rm \
+        $SUBMISSION_IMAGE_ID
+
+# Open an interactive bash shell within the container
+[group('* test submission locally')]
+interact-container: _check-image _echo-image _submission-write-perms
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ ^C
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ MSYS_NO_PATHCONV=1 docker run --rm \
+  --mount "type=bind,source=$(cygpath -w "$(pwd)/submission"),target=/tmp/submission" \
+  alpine ls -la /tmp/submission
+total 44564
+drwxrwxrwx    1 root     root          4096 Aug 25 11:49 .
+drwxrwxrwt    1 root     root          4096 Aug 25 12:01 ..
+-rwxrwxrwx    1 root     root             0 Aug 25 09:47 .gitkeep
+-rwxrwxrwx    1 root     root      45625656 Aug 25 11:49 submission.zip
+
+rober@LAPTOP-N0A2K77N MINGW64 ~/competition-sfmn-parkinsons-runtime (main)
+$ MSYS_NO_PATHCONV=1 GITHUB_ACTIONS_NO_TTY=true just test-submission
+Checking submission image: competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest
+
+Using image: competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest (6937e15926bc)
+┏
+┃ NAME(S)
+┃ competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest}}
+└
+
+Available official images:
+┏
+┃ IMAGE                                                                                        ID             DISK USAGE   CONTENT SIZE   EXTRA
+┃ competitionsfmnparkinsonsprodacr.azurecr.io/competition-sfmn-parkinsons-runtime:gpu-latest   6937e15926bc       21.3GB         7.48GB
+└
+
+No local images available
+Run 'just build' to build the image.
+
+mkdir -p submission/
+chmod -R 0777 submission/
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.9.0
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+WARNING: The NVIDIA Driver was not detected.  GPU functionality will not be available.
+   Use the NVIDIA Container Toolkit to start this container with GPU support; see
+   https://docs.nvidia.com/datacenter/cloud-native/ .
+
++ main
++ tee /code_execution/submission/log.txt
++ expected_filename=main.py
++ cd /code_execution
+++ zip -sf ./submission/submission.zip
++ submission_files='Archive contains:
+  main.py
+  model/
+  model/model.txt
+  model/model_example.pth
+  src/
+  src/__init__.py
+  src/model.py
+Total 7 entries (45624938 bytes)'
++ grep -q main.py
++ log INFO 'Unpacking submission'
++ set +x
+2026-08-25 12:02:30.181 | INFO  | Unpacking submission
++ unzip ./submission/submission.zip -d ./
+Archive:  ./submission/submission.zip
+ extracting: ./main.py
+   creating: ./model/
+ extracting: ./model/model.txt
+ extracting: ./model/model_example.pth
+   creating: ./src/
+ extracting: ./src/__init__.py
+ extracting: ./src/model.py
++ ls -alh
+total 204K
+drwxr-xr-x 1 runtimeuser runtimeuser 4.0K Aug 25 12:02 .
+drwxr-xr-x 1 root        root        4.0K Aug 25 12:02 ..
+-rw-r--r-- 1 runtimeuser runtimeuser    4 Aug  3 18:10 .python-version
+drwxr-xr-x 5 runtimeuser runtimeuser 4.0K Aug  3 18:12 .venv
+drwxrwxrwx 1 root        root        4.0K Aug 25 09:47 data
+-rw-r--r-- 1 runtimeuser runtimeuser 5.1K Jan  1  1980 main.py
+drwxr-xr-x 2 runtimeuser runtimeuser 4.0K Jan  1  1980 model
+-rw-r--r-- 1 runtimeuser runtimeuser 2.1K Aug  3 18:10 pyproject.toml
+drwxr-xr-x 2 runtimeuser runtimeuser 4.0K Jan  1  1980 src
+drwxrwxrwx 1 root        root        4.0K Aug 25 12:02 submission
+-rw-r--r-- 1 runtimeuser runtimeuser 166K Aug  3 18:10 uv.lock
++ '[' -d data ']'
++ log INFO 'Data directory contents:'
++ set +x
+2026-08-25 12:02:34.081 | INFO  | Data directory contents:
++ ls -alh data/
+total 4.0K
+drwxrwxrwx 1 root        root        4.0K Aug 25 09:47 .
+drwxr-xr-x 1 runtimeuser runtimeuser 4.0K Aug 25 12:02 ..
+-rwxrwxrwx 1 root        root           0 Aug 25 09:47 .gitkeep
+drwxrwxrwx 1 root        root        4.0K Aug 25 09:47 niftis
+-rwxrwxrwx 1 root        root         278 Aug 25 09:47 submission_format.csv
++ '[' -n 1 ']'
++ log INFO 'Smoke test mode enabled (IS_SMOKE_TEST=1)'
++ set +x
+2026-08-25 12:02:34.116 | INFO  | Smoke test mode enabled (IS_SMOKE_TEST=1)
++ echo 'Running submission...'
+Running submission...
++ python main.py
+2026-08-25 12:02:52.636 | INFO     | __main__:main:58 - Loaded submission_format.csv with 20 rows.
+2026-08-25 12:02:52.636 | INFO     | __main__:main:63 - Submission columns: ['uid', 'is_pathologic']
+2026-08-25 12:02:52.637 | INFO     | __main__:main:89 - Using 1 checkpoint(s).
+2026-08-25 12:02:54.015 | INFO     | __main__:main:101 - Model loaded successfully.
+/code_execution/.venv/lib/python3.12/site-packages/monai/utils/deprecate_utils.py:320: FutureWarning: monai.transforms.spatial.array Orientation.__init__:labels: Current default value of argument `labels=(('L', 'R'), ('P', 'A'), ('I', 'S'))` was changed in version None from `labels=(('L', 'R'), ('P', 'A'), ('I', 'S'))` to `labels=None`. Default value changed to None meaning that the transform now uses the 'space' of a meta-tensor, if applicable, to determine appropriate axis labels.
+  warn_deprecated(argname, msg, warning_category)
+2026-08-25 12:02:57.400 | INFO     | __main__:main:134 - cwbfuk9e: 0.092499
+2026-08-25 12:02:57.875 | INFO     | __main__:main:134 - 15z8vmuh: 0.096796
+2026-08-25 12:02:58.343 | INFO     | __main__:main:134 - 1r11q7uw: 0.114107
+2026-08-25 12:02:58.733 | INFO     | __main__:main:134 - t7zewviy: 0.068196
+2026-08-25 12:02:59.132 | INFO     | __main__:main:134 - yo4rcb1k: 0.991316
+2026-08-25 12:02:59.514 | INFO     | __main__:main:134 - udktmonr: 0.993739
+2026-08-25 12:02:59.926 | INFO     | __main__:main:134 - k0vm59m6: 0.970264
+2026-08-25 12:03:00.317 | INFO     | __main__:main:134 - mg87oi0e: 0.039311
+2026-08-25 12:03:01.240 | INFO     | __main__:main:134 - v23gxj0m: 0.773916
+2026-08-25 12:03:01.842 | INFO     | __main__:main:134 - dg1wjuii: 0.270345
+2026-08-25 12:03:02.864 | INFO     | __main__:main:134 - cw2lbm2q: 0.977397
+2026-08-25 12:03:03.676 | INFO     | __main__:main:134 - jz6us7rp: 0.139893
+2026-08-25 12:03:04.089 | INFO     | __main__:main:134 - qgm5v2ww: 0.138025
+2026-08-25 12:03:04.539 | INFO     | __main__:main:134 - btr23qiu: 0.891264
+2026-08-25 12:03:04.970 | INFO     | __main__:main:134 - w69hzgop: 0.970763
+2026-08-25 12:03:05.310 | INFO     | __main__:main:134 - om2zkf5b: 0.379854
+2026-08-25 12:03:05.630 | INFO     | __main__:main:134 - 53x1f8s0: 0.670540
+2026-08-25 12:03:06.547 | INFO     | __main__:main:134 - emc20lsj: 0.090755
+2026-08-25 12:03:07.498 | INFO     | __main__:main:134 - gkzjrumx: 0.983581
+2026-08-25 12:03:08.521 | INFO     | __main__:main:134 - 9vjuhbp9: 0.992307
+2026-08-25 12:03:08.523 | INFO     | __main__:main:172 - Prediction column: is_pathologic
+2026-08-25 12:03:08.546 | INFO     | __main__:main:187 - Submission saved to: /code_execution/submission.csv
+2026-08-25 12:03:08.546 | INFO     | __main__:main:192 - Submission shape: (20, 2)
+2026-08-25 12:03:08.546 | INFO     | __main__:main:197 - Prediction range: [0.039311, 0.993739]
++ echo 'Exporting submission.csv result...'
+Exporting submission.csv result...
++ '[' -f submission.csv ']'
++ log INFO 'Script completed its run.'
++ set +x
+2026-08-25 12:03:12.526 | INFO  | Script completed its run.
++ cp submission.csv ./submission/submission.csv
++ exit_code=0
++ cp /code_execution/submission/log.txt /tmp/log
++ log INFO 'Submission run completed with exit code: 0'
++ set +x
++ tee -a /code_execution/submission/log.txt /tmp/log
+2026-08-25 12:03:12.625 | INFO  | Submission run completed with exit code: 0
++ exit 0
+
+Utiliser https://chatgpt.com/c/6a8d818c-6914-83ed-bf6b-36e0a4bf96ae
+
+just pull
+just pack-example minimal
+MSYS_NO_PATHCONV=1 GITHUB_ACTIONS_NO_TTY=true just test-submission
