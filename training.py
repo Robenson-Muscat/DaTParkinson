@@ -13,11 +13,18 @@ import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 
 from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.metrics import roc_auc_score, log_loss
 from torch.utils.tensorboard import SummaryWriter
 
-from utils import seed_everything, compute_metrics, free_gpu
+from utils import seed_everything, free_gpu
 from dataset import create_cases_dataframe, create_train_val_indices
+from metrics import DaTClassifierMetrics
+
+import logging 
+# ======== # CONFIGURATION ======
+
+logging.basicConfig( level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", ) 
+logger = logging.getLogger(__name__)
+
 
 
 
@@ -35,32 +42,10 @@ CKPTS_DIR.mkdir(parents=True, exist_ok=True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+logger.info(f"Loading labels from: {CSV_PATH}")
+
 df = pd.read_csv(CSV_PATH)
 
-"""# Data analysis for a common target spacing"""
-
-def read_metadata(path):
-    nii = nib.load(path)
-    header = nii.header
-    shape = nii.shape
-    spacing = header.get_zooms()[:3]
-    affine = nii.affine
-    orientation = nib.aff2axcodes(affine)
-    return {"shape": shape, "spacing": spacing, "orientation": orientation}
-
-metadata = []
-
-files = list(NIFTI_DIR.glob("*.nii.gz"))
-
-for f in tqdm(files):
-    info = read_metadata(f)
-    metadata.append({"uid": f.name.replace(".nii.gz", ""), "shape": info["shape"], "sx": info["spacing"][0], "sy": info["spacing"][1], "sz": info["spacing"][2], "orientation": str(info["orientation"])})
-
-meta_df = pd.DataFrame(metadata)
-
-target_spacing = meta_df[["sx", "sy", "sz"]].median().values
-
-TARGET_SPACING = tuple(float(x) for x in target_spacing)
 
 
 
@@ -71,6 +56,7 @@ from monai.data import CacheDataset, DataLoader
 from monai.networks.nets import DenseNet121
 
 TARGET_SIZE = (112, 112, 80)
+TARGET_SPACING = (2.46, 2.46, 2.46)
 BATCH_SIZE = 4
 
 
@@ -96,6 +82,7 @@ val_transforms = Compose([
     EnsureTyped(keys=["image", "label"])
 ])
 
+logger.info("Creating stratified train/validation split...")
 
 cases = create_cases_dataframe(df, NIFTI_DIR)
 labels = np.array([c["label"] for c in cases])
@@ -108,11 +95,13 @@ train_cases = [cases[i] for i in train_idx]
 val_cases = [cases[i] for i in val_idx]
 
 
-train_dataset = CacheDataset(data=train_cases, transform=train_transforms, cache_rate=0.5, num_workers=0)
-val_dataset = CacheDataset(data=val_cases, transform=val_transforms, cache_rate=0.5, num_workers=0)
+train_dataset = CacheDataset(data=train_cases, transform=train_transforms, cache_rate=0.5, num_workers=5)
+val_dataset = CacheDataset(data=val_cases, transform=val_transforms, cache_rate=0.5, num_workers=5)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+logger.info("Datasets ready")
 
 
 
@@ -122,6 +111,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
 use_amp = device.type == "cuda"
 scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+
+#scaler = torch.cuda.amp.GradScaler()
+
 
 
 EPOCHS = 40
@@ -149,7 +141,7 @@ for epoch in range(EPOCHS):
         labels = batch["label"].to(device).float().view(-1, 1)
 
         optimizer.zero_grad()
-
+        #with torch.cuda.amp.autocast():
         with torch.amp.autocast(device_type=device.type, enabled=use_amp):
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -184,7 +176,10 @@ for epoch in range(EPOCHS):
             y_true.extend(labels.cpu().numpy().flatten())
             y_prob.extend(probs.cpu().numpy().flatten())
 
-    val_loss, val_auc = compute_metrics(y_true, y_prob)
+    val_metrics = DaTClassifierMetrics(y_true, y_prob)
+
+    val_loss = val_metrics["log_loss"]
+    val_auc = val_metrics["roc_auc"]
 
     writer.add_scalar("Loss/train", train_loss, epoch)
     writer.add_scalar("Loss/validation", val_loss, epoch)
