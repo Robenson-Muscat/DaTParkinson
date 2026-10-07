@@ -126,17 +126,30 @@ The preprocessing pipeline is deterministic and identical for the training and v
 
 ### Classification model
 
-The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network implemented with MONAI.
+The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network.
 
 The model receives a single-channel 3D volume of size **64 × 64 × 64** and produces a single output logit corresponding to the probability of a pathological DaT scan.
 
 DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
 
-The model is trained using the **binary cross-entropy loss with logits (BCEWithLogitsLoss)** and optimized with **AdamW**.
+The model is trained using the **binary cross-entropy loss** and optimized with **AdamW**.
 
 The overall preprocessing and classification pipeline can therefore be summarized as:
 
-**NIfTI volume → RAS orientation → 2 mm isotropic resampling → head localization → bilateral striatal localization → 64³ spatial crop → robust intensity normalization → 3D DenseNet-121 → normal/pathological classification.**
+```mermaid
+flowchart LR
+    A["Raw DaT scan<br/>NIfTI (.nii.gz)"] 
+    --> B["RAS reorientation"]
+    --> C["2 mm isotropic<br/>resampling"]
+    --> D["Head localization<br/>Largest connected component"]
+    --> E["Bilateral striatal<br/>localization"]
+    --> F["112 × 112 × 112<br/>spatial crop"]
+    --> G["Robust intensity<br/>normalization<br/>1st–99th percentile"]
+    --> H["3D DenseNet-121"]
+    --> I{"Classification"}
+    --> J["Normal<br/>0"]
+    I --> K["Pathological<br/>1"]
+```
 
 
 
