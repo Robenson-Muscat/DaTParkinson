@@ -38,7 +38,7 @@ Please check out [data installation instructions](./data/INSTALL.md).
 
 Each .nii.gz file contains a single 3D reconstructed volume stored as 16-bit unsigned integer voxel intensities. Note that acquisition and reconstruction parameters vary across the dataset, so images are not all the same size or resolution:
 
-Volume dimensions differ from scan to scan (for example, 142 × 142 × 112 or 128 × 128 × 128). Your pipeline should not assume a fixed input shape.
+Volume dimensions differ from scan to scan (for example, 142 × 142 × 64 or 128 × 128 × 128). Your pipeline should not assume a fixed input shape.
 Voxel spacing also varies (e.g., 2.46 mm and 3.895 mm isotropic), reflecting differences in scanners and acquisition protocols across contributing centers. The spacing is recorded in each file's NIfTI header and may be useful for resampling images to a common resolution.
 
 These differences are a normal consequence of pooling data from multiple institutions, and building models that generalize across them is part of the challenge.
@@ -68,6 +68,77 @@ where:
 
 
 
+## Method
+
+### DaT scan characteristics
+
+Dopamine transporter (DaT) imaging is a nuclear medicine technique used to assess the integrity of the presynaptic dopaminergic system. In particular, DaT scans provide information about dopamine transporter availability in the striatum, a brain region composed primarily of the caudate nucleus and putamen.
+
+In a healthy subject, DaT uptake is predominantly concentrated in the bilateral striatum, producing two relatively symmetric regions (comma-shaped striata with intact putaminal tails) of high tracer uptake. In parkinsonian syndromes associated with nigrostriatal degeneration, dopamine transporter availability is reduced. This typically results in decreased striatal uptake, often with a characteristic asymmetric reduction and a greater loss of uptake in the putamen than in the caudate nucleus. An unhealthy case shows dot-shaped striata, tails lost.
+
+![Normal vs abnormal studies](./images/normal_vs_anormal.jpeg)
+
+Consequently, the distinction between normal and pathological examinations is largely driven by the spatial distribution, intensity, symmetry, and shape of striatal uptake. This makes DaT scans particularly well suited to three-dimensional image classification methods.
+
+### Inter-center variability
+
+The dataset combines DaT scans acquired at ten different hospital centers. As a result, acquisition and reconstruction parameters are not homogeneous across the dataset.
+
+In particular, voxel spacing varies substantially between examinations, ranging approximately from **1.37 mm to 4.42 mm** across the contributing hospitals.
+
+![Voxel spacing histogram](./images/analysis_spacing.png)
+
+This variability is important because the same anatomical structure can occupy very different numbers of voxels depending on the acquisition resolution. For example, a structure spanning 40 mm would occupy approximately 29 voxels with a 1.37 mm spacing, but only about 9 voxels with a 4.42 mm spacing. A convolutional neural network operating directly on these voxel grids would therefore observe substantially different spatial representations of the same anatomical structures.
+
+To reduce this source of inter-center variability, the preprocessing pipeline explicitly normalizes the spatial resolution before classification.
+
+### Resampling and spatial cropping
+
+Each NIfTI volume is first reoriented to the standard **RAS (Right-Anterior-Superior)** anatomical orientation. The volume is then resampled to an isotropic resolution of **2 × 2 × 2 mm** using linear interpolation.
+
+This provides a common physical coordinate system across all examinations. A fixed-size crop can therefore correspond to approximately the same anatomical field of view regardless of the original scanner resolution.
+
+After resampling, the head is localized using a foreground mask and connected-component analysis. The largest connected component is retained to remove irrelevant background regions and to obtain a robust localization of the head.
+
+The striatal region is then localized using a high-intensity suprathreshold mask. The highest-intensity voxels are separated according to their position relative to the midline, allowing the left and right striatal uptake regions to be identified independently. Their estimated centers are combined to obtain a robust center for the bilateral striatal region.
+
+A fixed **64 × 64 × 64 voxel** crop is finally extracted around this center. At 2 mm isotropic resolution, this corresponds to a physical field of view of approximately **224 × 224 × 224 mm**, providing sufficient spatial context around the striatum while removing a large portion of irrelevant background.
+
+This spatial normalization is particularly important for the subsequent convolutional network: without it, a fixed input tensor would not represent a consistent physical region across scans. For example, a 64³ tensor acquired at 1.37 mm spacing would cover only about 154 mm per axis, whereas the same tensor at 4.42 mm spacing would cover more than 495 mm. Resampling to 2 mm ensures that the network receives approximately the same anatomical field of view for every examination.
+
+### Intensity normalization
+
+DaT scans can also exhibit differences in absolute intensity due to acquisition and reconstruction variability. To reduce the influence of these scanner- and acquisition-dependent differences, intensity normalization is performed independently for each volume.
+
+Only non-zero voxels are considered when estimating the intensity distribution. The intensities are clipped between the **1st and 99th percentiles**, limiting the influence of extreme values, and then linearly scaled to the **[0, 1]** range.
+
+Background voxels remain equal to zero.
+
+This normalization preserves the relative spatial distribution of tracer uptake while reducing unnecessary variation in absolute intensity between examinations.
+
+### Train/validation split
+
+The dataset is divided into training and validation subsets using a **stratified 80/20 split**. Stratification is performed using the binary pathological label to preserve approximately the same proportion of normal and abnormal examinations in both subsets.
+
+A fixed random seed is used to make the split reproducible.
+
+The preprocessing pipeline is deterministic and identical for the training and validation sets. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training.
+
+### Classification model
+
+The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network implemented with MONAI.
+
+The model receives a single-channel 3D volume of size **64 × 64 × 64** and produces a single output logit corresponding to the probability of a pathological DaT scan.
+
+DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
+
+The model is trained using the **binary cross-entropy loss with logits (BCEWithLogitsLoss)** and optimized with **AdamW**.
+
+The overall preprocessing and classification pipeline can therefore be summarized as:
+
+**NIfTI volume → RAS orientation → 2 mm isotropic resampling → head localization → bilateral striatal localization → 64³ spatial crop → robust intensity normalization → 3D DenseNet-121 → normal/pathological classification.**
+
+
 
 ## Performance metric
 
@@ -91,8 +162,4 @@ The test set is withheld and is not available for download. Its images are only 
 The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing).
 
 The inference.py file is designed to comply with the code submission format. Please check out the following [website](https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/page/989/) for more details
-## Method
-
-Work in progress...
-
 
