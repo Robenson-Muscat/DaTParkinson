@@ -76,7 +76,7 @@ Dopamine transporter (DaT) imaging is a nuclear medicine technique used to asses
 
 In a healthy subject, DaT uptake is predominantly concentrated in the bilateral striatum, producing two relatively symmetric regions (comma-shaped striata with intact putaminal tails) of high tracer uptake. In parkinsonian syndromes associated with nigrostriatal degeneration, dopamine transporter availability is reduced. This typically results in decreased striatal uptake, often with a characteristic asymmetric reduction and a greater loss of uptake in the putamen than in the caudate nucleus. An unhealthy case shows dot-shaped striata, tails lost.
 
-![Normal vs abnormal studies](./images/normal_vs_anormal.jpeg)
+![Normal vs abnormal studies](./images/normal_vs_anormal.jpg)
 
 Consequently, the distinction between normal and pathological examinations is largely driven by the spatial distribution, intensity, symmetry, and shape of striatal uptake. This makes DaT scans particularly well suited to three-dimensional image classification methods.
 
