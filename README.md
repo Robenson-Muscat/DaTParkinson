@@ -116,6 +116,8 @@ Background voxels remain equal to zero.
 
 This normalization preserves the relative spatial distribution of tracer uptake while reducing unnecessary variation in absolute intensity between examinations.
 
+![Preprocessing effects](./images/before_vs_after.png)
+
 ### Train/validation split
 
 The dataset is divided into training and validation subsets using a **stratified 80/20 split**. Stratification is performed using the binary pathological label to preserve approximately the same proportion of normal and abnormal examinations in both subsets.
@@ -162,6 +164,13 @@ Log loss for a single observation is calculated as follows:
 $L_{\mathrm{log}}(y,p)=-\left[y\log(p) + (1-y)\log(1-p)\right]$
 
 where 𝑦 is a binary variable indicating whether the examination is abnormal (1) or normal (0), and 𝑝 is the user-predicted probability that the examination is abnormal. The loss for the entire dataset is the average loss across all observations.
+
+| Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
+|:--|--:|--:|--:|--:|
+| Without preprocessing | 0.2987 | 0.9500 | 0.3800 | 0.9100 |
+| **With preprocessing(Head Localization + Bilateral striatal localization)** | **0.27** | **0.96** | **0.35** | **0.9200** |
+
+
 
 ## Training and inference
 
