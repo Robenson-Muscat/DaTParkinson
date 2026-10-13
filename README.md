@@ -102,7 +102,7 @@ After resampling, the head is localized using a foreground mask and connected-co
 
 The striatal region is then localized using a high-intensity suprathreshold mask. The highest-intensity voxels are separated according to their position relative to the midline, allowing the left and right striatal uptake regions to be identified independently. Their estimated centers are combined to obtain a robust center for the bilateral striatal region.
 
-A fixed **64 × 64 × 64 voxel** crop is finally extracted around this center. At 2 mm isotropic resolution, this corresponds to a physical field of view of approximately **224 × 224 × 224 mm**, providing sufficient spatial context around the striatum while removing a large portion of irrelevant background.
+A fixed **48 × 48 × 48 voxel** crop is finally extracted around this center. At 2 mm isotropic resolution, this corresponds to a physical field of view of approximately **96 × 96 × 96 mm**, providing sufficient spatial context around the striatum while removing a large portion of irrelevant background.
 
 This spatial normalization is particularly important for the subsequent convolutional network: without it, a fixed input tensor would not represent a consistent physical region across scans. For example, a 64³ tensor acquired at 1.37 mm spacing would cover only about 154 mm per axis, whereas the same tensor at 4.42 mm spacing would cover more than 495 mm. Resampling to 2 mm ensures that the network receives approximately the same anatomical field of view for every examination.
 
@@ -116,7 +116,7 @@ Background voxels remain equal to zero.
 
 This normalization preserves the relative spatial distribution of tracer uptake while reducing unnecessary variation in absolute intensity between examinations.
 
-![Preprocessing effects](./images/before_vs_after.png)
+![Preprocessing effects](./images/before_vs_after_7.png)
 
 ### Train/validation split
 
@@ -130,7 +130,7 @@ The preprocessing pipeline is deterministic and identical for the training and v
 
 The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network.
 
-The model receives a single-channel 3D volume of size **64 × 64 × 64** and produces a single output logit corresponding to the probability of a pathological DaT scan.
+The model receives a single-channel 3D volume of size **48 × 48 × 48** and produces a single output logit corresponding to the probability of a pathological DaT scan.
 
 DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
 
@@ -145,7 +145,7 @@ flowchart LR
     --> C["2 mm isotropic<br/>resampling"]
     --> D["Head localization<br/>Largest connected component"]
     --> E["Bilateral striatal<br/>localization"]
-    --> F["112 × 112 × 112<br/>spatial crop"]
+    --> F["48 × 48 × 48<br/>spatial crop"]
     --> G["Robust intensity<br/>normalization<br/>1st–99th percentile"]
     --> H["3D DenseNet-121"]
     --> I{"Classification"}
@@ -167,8 +167,8 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 
 | Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
 |:--|--:|--:|--:|--:|
-| Without preprocessing | 0.2987 | 0.9500 | 0.3800 | 0.9100 |
-| **With preprocessing(Head Localization + Bilateral striatal localization)** | **0.2780** | **0.9641** | **0.3545** | **0.9200** |
+| Without preprocessing | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
+| **With preprocessing(Head Localization + Bilateral striatal localization + Z-score normalization)** | **0.2780** | **0.9641** | **0.3545** | **0.9280** |
 
 
 
