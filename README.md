@@ -14,7 +14,9 @@
 
 Parkinsonian syndromes affect millions of people worldwide, yet diagnosing them accurately and early remains challenging. Dopamine transporter (DaT) imaging is an important tool for distinguishing neurodegenerative parkinsonian syndromes from other conditions, but reliable interpretation requires specialized expertise that is not available everywhere.
 
-Each year, more than 20,000 DaT scans are performed in France alone. While many can be classified as normal or abnormal, approximately one in five cases remains difficult to interpret — particularly in early-stage or atypical presentations — delaying diagnosis, complicating treatment decisions, and increasing demands on specialist readers.
+Each year, more than 20,000 DaT scans are performed in France alone. While many can be classified as normal or abnormal, approximately one in five cases remains difficult to interpret — particularly in early-stage or atypical presentations — delaying diagnosis, complicating treatment decisions, and increasing demands on specialist readers. 
+
+However, conditions other than Parkinson’s decrease dopamine activity and cause abnormal images. Examples include the atypical parkinsonisms multiple system atrophy, corticobasal degeneration and progressive supranuclear palsy, which may look similar to Parkinson’s early on. Likewise, up to 15% of the patients meeting PD clinical criteria but showing predominant resting and postural tremor in the upper limbs might have normal results in this test, known as scans without evidence of dopaminergic deficit (SWEDD).
 
 We want to advance AI tools for DaT scan interpretation. 
 
@@ -74,11 +76,12 @@ where:
 
 Dopamine transporter (DaT) imaging is a nuclear medicine technique used to assess the integrity of the presynaptic dopaminergic system. In particular, DaT scans provide information about dopamine transporter availability in the striatum, a brain region composed primarily of the caudate nucleus and putamen.
 
-In a healthy subject, DaT uptake is predominantly concentrated in the bilateral striatum, producing two relatively symmetric regions (comma-shaped striata with intact putaminal tails) of high tracer uptake. In parkinsonian syndromes associated with nigrostriatal degeneration, dopamine transporter availability is reduced. This typically results in decreased striatal uptake, often with a characteristic asymmetric reduction and a greater loss of uptake in the putamen than in the caudate nucleus. An unhealthy case shows dot-shaped striata, tails lost.
+In a healthy subject, DaT uptake is predominantly concentrated in the bilateral striatum, producing two relatively symmetric regions (comma-shaped striata with intact putaminal tails) of high tracer uptake. In parkinsonian syndromes associated with nigrostriatal degeneration, dopamine transporter availability is reduced. This typically results in decreased striatal uptake, often with a characteristic asymmetric reduction and a greater loss of uptake in the putamen than in the caudate nucleus. An unhealthy case shows dot-shaped striata with a smaller signal.
 
-![Normal vs abnormal studies](./images/normal_vs_anormal.jpg)
+![Normal vs abnormal studies](./images/normal_vs_abnormal.jpg)
 
-Consequently, the distinction between normal and pathological examinations is largely driven by the spatial distribution, intensity, symmetry, and shape of striatal uptake. This makes DaT scans particularly well suited to three-dimensional image classification methods.
+Consequently, the distinction between normal and pathological examinations is largely driven by imaging biomarkers : the spatial distribution, intensity, symmetry, and shape of striatal uptake. 
+
 
 ### Inter-center variability
 
