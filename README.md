@@ -134,7 +134,7 @@ The model receives a single-channel 3D volume of size **48 × 48 × 48** and pro
 
 DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
 
-The model is trained using the **binary cross-entropy loss** and optimized with **AdamW(initial learning rate = 5e-4)**.
+The model is trained using the **binary cross-entropy loss** and optimized with **AdamW**.
 
 The overall preprocessing and classification pipeline can therefore be summarized as:
 
@@ -168,7 +168,7 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 | Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
 |:--|--:|--:|--:|--:|
 | Without preprocessing | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
-| **With preprocessing(Head Localization + Bilateral striatal localization + Z-score normalization)** | **0.2780** | **0.9641** | **0.3545** | **0.9280** |
+| **With preprocessing(Head Localization + Bilateral striatal localization + intensity normalization)** | **0.2780** | **0.9641** | **0.3545** | **0.9280** |
 
 
 
