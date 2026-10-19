@@ -30,9 +30,7 @@ The imaging data are provided as three-dimensional DaT scan reconstructions in c
 In addition, participants are welcome to incorporate external datasets for training; however, use of external data is subject to important exceptions and caveats.
 
 
-
 ## Data
-
 
 Please check out [data installation instructions](./data/INSTALL.md).
 
@@ -171,7 +169,7 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 | Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
 |:--|--:|--:|--:|--:|
 | Without preprocessing | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
-| **With preprocessing(Head Localization + Bilateral striatal localization + intensity normalization)** | **0.2780** | **0.9641** | **0.3545** | **0.9280** |
+| **With preprocessing(Head Localization + Bilateral striatal localization + intensity normalization)** | **0.2752** | **0.9537** | **0.3545** | **0.9208** |
 
 
 
