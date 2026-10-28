@@ -19,6 +19,9 @@ import dask
 from dask import delayed
 from dask.diagnostics import ProgressBar
 
+from features import VolumeStats
+
+
 
 
 
@@ -135,7 +138,7 @@ def _crop_or_pad(volume, center, size):
     return output
 
 
-def centro_testa(volume, percentile=99.5, threshold_ratio=0.30):
+def estimate_head_center(volume, percentile=99.5, threshold_ratio=0.30):
     """
     Estimate the head center using a binary foreground mask.
 
@@ -176,6 +179,14 @@ def centro_testa(volume, percentile=99.5, threshold_ratio=0.30):
 
     head_mask = labels == largest_label
     return np.asarray(ndimage.center_of_mass(head_mask))
+
+def find_hotspot(v, q=99.0, stats=None):
+    """Return centroid, spread, coordinates and threshold of bright voxels."""
+    if stats is not None and stats.v is v:
+        return stats.hotspot(q)
+
+    return VolumeStats(v).hotspot(q)
+
 
 
 def trova_hotspot(volume, q=99.5):
@@ -264,7 +275,7 @@ def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=Fa
 
     volume = _safe_volume(img_resampled.get_fdata(dtype=np.float32))
 
-    center = centro_testa(volume)
+    center = estimate_head_center(volume)
     volume = _crop_or_pad(volume, center, side)
 
     ## Preserve foreground contrast while retaining zero padding.
@@ -284,7 +295,7 @@ def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=Fa
     return volume, metadata
 
 
-def crop_paziente(
+def striatal_hotspot_crop(
     path,
     mm=TARGET_SPACING,
     side=TARGET_SIZE,
@@ -296,23 +307,18 @@ def crop_paziente(
     RAS-oriented DaTscan preprocessing:
         NIfTI -> RAS -> isotropic resampling
         -> head-centered volume -> striatal hotspot crop
-        -> robust normalization.
+        -> robust min-max normalization.
     """
 
     if crop <= 0 or crop > side:
-        raise ValueError("crop must be in the range 1..lato.")
+        raise ValueError(f"crop must be in the range 1..{side}.")
 
-    # carica_volume_mm now guarantees canonical RAS orientation
-    volume, head_metadata = load_volume_mm(
-        path,
-        mm=mm,
-        side=side,
-        return_metadata=True,
-    )
+    # load_volume_mm now guarantees canonical RAS orientation
+    volume, head_metadata = load_volume_mm(path, mm=mm, side=side, return_metadata=True)
 
     # Estimate bilateral hotspot center
-    center, spread, coords, threshold = trova_hotspot(volume, q=hotspot_percentile)
-    #center, spread, coords, threshold = find_hotspot(volume,q=hotspot_percentile,)
+    #center, spread, coords, threshold = trova_hotspot(volume, q=hotspot_percentile)
+    center, spread, coords, threshold = find_hotspot(volume,q=hotspot_percentile)
 
     # Crop around the estimated striatum
     cropped = _crop_or_pad(volume, center=center, size=crop)
@@ -340,7 +346,7 @@ def preprocess_one(uid, label, nifti_dir, crop=48):
     uid = str(uid)
     path = find_nifti(uid, nifti_dir)
 
-    volume, metadata = crop_paziente(path, mm=2.0,side=112, crop=crop, return_metadata=True)
+    volume, metadata = estimate_hotspot_center(path, mm=2.0, side=112, crop=crop, return_metadata=True)
 
     record = {
         "uid": uid,
@@ -410,11 +416,8 @@ def preprocess_dataframe(
                 "uid",
                 "label",
                 "hotspot_center",
-                "hotspot_voxel_count",
-            ]
-        )
+                "hotspot_voxel_count"])
 
-    #with ProgressBar():
     for start in tqdm(range(0, len(rows), batch_size), desc="Preprocessing"):
             batch = rows[start : start + batch_size]
 
