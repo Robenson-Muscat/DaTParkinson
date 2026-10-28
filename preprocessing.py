@@ -52,26 +52,17 @@ def find_nifti(uid, nifti_dir):
 
     nifti_dir = Path(nifti_dir)
 
-    candidates = [
-        nifti_dir / f"{uid}.nii.gz",
-        nifti_dir / f"{uid}.nii",
-    ]
+    candidates = [nifti_dir / f"{uid}.nii.gz", nifti_dir / f"{uid}.nii"]
 
     for path in candidates:
         if path.exists():
             return path
 
-    raise FileNotFoundError(
-        f"No NIfTI found for uid={uid} in {nifti_dir}"
-    )
+    raise FileNotFoundError(f"No NIfTI found for uid={uid} in {nifti_dir}")
 
 
 
-def load_resample_nifti(
-    path,
-    target_spacing=TARGET_SPACING,
-    interpolation_order=1,
-):
+def load_resample_nifti(path, target_spacing=TARGET_SPACING, interpolation_order=1):
     """
     Load a NIfTI, reorient it to RAS and resample to target spacing.
 
@@ -92,8 +83,7 @@ def load_resample_nifti(
     img_resampled = resample_to_output(
         img,
         voxel_sizes=target_spacing,
-        order=interpolation_order,
-    )
+        order=interpolation_order)
 
     volume = img_resampled.get_fdata(dtype=np.float32)
 
@@ -104,9 +94,7 @@ def load_resample_nifti(
 def _safe_volume(volume):
     """Replace invalid values and remove negative intensities."""
     volume = np.asarray(volume, dtype=np.float32)
-    volume = np.nan_to_num(
-        volume, nan=0.0, posinf=0.0, neginf=0.0
-    )
+    volume = np.nan_to_num(volume, nan=0.0, posinf=0.0, neginf=0.0)
     return np.maximum(volume, 0.0)
 
 
@@ -171,16 +159,9 @@ def centro_testa(volume, percentile=99.5, threshold_ratio=0.30):
     mask = volume > threshold
 
     # Close small gaps without excessively expanding the foreground.
-    mask = ndimage.binary_closing(
-        mask,
-        structure=ndimage.generate_binary_structure(3, 1),
-        iterations=1,
-    )
+    mask = ndimage.binary_closing(mask, structure=ndimage.generate_binary_structure(3, 1),iterations=1)
 
-    labels, n_labels = ndimage.label(
-        mask,
-        structure=ndimage.generate_binary_structure(3, 1),
-    )
+    labels, n_labels = ndimage.label(mask, structure=ndimage.generate_binary_structure(3, 1))
 
     if n_labels == 0:
         return fallback
@@ -240,7 +221,7 @@ def trova_hotspot(volume, q=99.5):
 
 
 
-def normalise_volume_minmax(volume):
+def normalise_volume(volume):
     """
     Min-Max intensity normalization to [0, 1].
 
@@ -262,8 +243,7 @@ def normalise_volume_minmax(volume):
     output[mask] = np.clip(
         (volume[mask] - lo) / (hi - lo),
         0.0,
-        1.0,
-    )
+        1.0)
 
     return output
 
@@ -280,11 +260,7 @@ def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=Fa
     img = nib.as_closest_canonical(img)
     ras_orientation = nib.aff2axcodes(img.affine)
 
-    img_resampled = resample_to_output(
-        img,
-        voxel_sizes=(mm, mm, mm),
-        order=1
-    )
+    img_resampled = resample_to_output(img, voxel_sizes=(mm, mm, mm), order=1)
 
     volume = _safe_volume(img_resampled.get_fdata(dtype=np.float32))
 
@@ -292,7 +268,7 @@ def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=Fa
     volume = _crop_or_pad(volume, center, side)
 
     ## Preserve foreground contrast while retaining zero padding.
-    volume  = normalise_volume_minmax(volume)
+    volume  = normalise_volume(volume)
 
     if not return_metadata:
         return volume
@@ -314,8 +290,8 @@ def crop_paziente(
     side=TARGET_SIZE,
     crop=80,
     hotspot_percentile=99.5,
-    return_metadata=False,
-):
+    return_metadata=False):
+    
     """
     RAS-oriented DaTscan preprocessing:
         NIfTI -> RAS -> isotropic resampling
@@ -335,18 +311,14 @@ def crop_paziente(
     )
 
     # Estimate bilateral hotspot center
-    center, spread, coords, threshold = trova_hotspot(volume,q=hotspot_percentile,)
+    center, spread, coords, threshold = trova_hotspot(volume, q=hotspot_percentile)
     #center, spread, coords, threshold = find_hotspot(volume,q=hotspot_percentile,)
 
     # Crop around the estimated striatum
-    cropped = _crop_or_pad(
-        volume,
-        center=center,
-        size=crop,
-    )
+    cropped = _crop_or_pad(volume, center=center, size=crop)
 
     # Normalize the crop
-    #cropped = normalise_volume_minmax(cropped)
+    #cropped = normalise_volume(cropped)
 
     metadata = {
         **head_metadata,
@@ -368,14 +340,13 @@ def preprocess_one(uid, label, nifti_dir, crop=48):
     uid = str(uid)
     path = find_nifti(uid, nifti_dir)
 
-    volume, metadata = crop_paziente(path,mm=2.0,side=112,crop=crop,return_metadata=True,)
+    volume, metadata = crop_paziente(path, mm=2.0,side=112, crop=crop, return_metadata=True)
 
     record = {
         "uid": uid,
         "label": label,
         "hotspot_center": metadata["hotspot_center"].tolist(),
-        "hotspot_voxel_count": metadata["hotspot_voxel_count"],
-    }
+        "hotspot_voxel_count": metadata["hotspot_voxel_count"]}
 
     return volume, record
 
@@ -444,25 +415,13 @@ def preprocess_dataframe(
         )
 
     #with ProgressBar():
-    for start in tqdm(
-            range(0, len(rows), batch_size),
-            desc="Preprocessing",
-        ):
+    for start in tqdm(range(0, len(rows), batch_size), desc="Preprocessing"):
             batch = rows[start : start + batch_size]
 
-            tasks = [
-                delayed(preprocess_one)(
-                    uid, label, nifti_dir, crop
-                )
-                for uid, label in batch
-            ]
+            tasks = [delayed(preprocess_one)(uid, label, nifti_dir, crop) for uid, label in batch]
 
             # Calcul uniquement du lot courant
-            results = dask.compute(
-                *tasks,
-                scheduler=scheduler,
-                num_workers=n_workers,
-            )
+            results = dask.compute(*tasks, scheduler=scheduler, num_workers=n_workers)
 
             for volume, record in results:
 
@@ -492,5 +451,4 @@ if __name__ == "__main__":
     df,
     nifti_dir="./data/niftis",
     crop=48,
-    #max_workers=6,
-    output_dir="./processed_volumes_minmax")
+    output_dir="./processed_volumes")
