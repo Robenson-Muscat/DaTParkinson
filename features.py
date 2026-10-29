@@ -5,8 +5,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from preprocessing import load_volume_mm
+from preprocessing import load_volume_mm, VolumeStats
 from concurrent.futures import ThreadPoolExecutor
+
+
 
 DATA_ROOT = Path("./data/")
 NIFTI_DIR = DATA_ROOT / "niftis"
@@ -17,37 +19,6 @@ CSV_PATH = DATA_ROOT / "train_labels.csv"
 TARGET_SIZE = 112
 QUANTILES = (10, 50, 70, 75, 90, 95, 97, 98, 99, 99.5, 99.9)
 
-
-class VolumeStats:
-    """Global statistics and on-demand hotspot calculations."""
-
-    def __init__(self, v):
-        self.v = v
-        self.mean = float(v.mean())
-        self.std = float(v.std())
-
-        # A single call computes all required global percentiles.
-        values = np.percentile(v, QUANTILES)
-        self.percentiles = dict(zip(QUANTILES, values))
-
-        self._indices = {}
-
-    def percentile(self, q):
-        """Global percentile, computed on demand if not already cached."""
-        if q not in self.percentiles:
-            self.percentiles[q] = np.percentile(self.v, q)
-        return self.percentiles[q]
-
-    def indices(self, q):
-        """Coordinates of voxels above percentile q."""
-        if q not in self._indices:
-            threshold = self.percentile(q)
-            self._indices[q] = np.argwhere(self.v >= threshold)
-        return self._indices[q]
-
-    def hotspot(self, q=99.0):
-        idx = self.indices(q)
-        return idx.mean(0), idx.std(0), idx, self.percentile(q)
 
 
 def find_hotspot(v, q=99.0, stats=None):
@@ -339,10 +310,10 @@ def subregion_features(v, idx, background, n):
 
 
 
-def extract_features(volume_path, mm, side):
-    v = load_volume_mm(volume_path, mm=mm, side=side)
+def extract_features(volume_path, mm, size):
+    v = load_volume_mm(volume_path, mm=mm, size=size)
 
-    h = side // 2
+    h = size // 2
     #vg = v.reshape(h, 2, h, 2, h, 2).mean(axis=(1, 3, 5))
     
     sv = VolumeStats(v)
@@ -383,7 +354,8 @@ if __name__=="__main__":
     # Associate labels to files
     labels_dict = dict(zip(list_files, list_labels))
     
-    features_tab = pd.DataFrame([x for _, x in results], index=[p for p, _ in results])
+    features_tab = pd.DataFrame([x for _, x in results], index=[p.removesuffix(".nii.gz") for p, _ in results])
+                                                                              
     
     features_tab.index.name = "file"
     features_tab["label"] = [labels_dict[p] for p in features_tab.index]
