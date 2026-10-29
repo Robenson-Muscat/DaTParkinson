@@ -354,11 +354,13 @@ if __name__=="__main__":
     # Associate labels to files
     labels_dict = dict(zip(list_files, list_labels))
     
-    features_tab = pd.DataFrame([x for _, x in results], index=[p.removesuffix(".nii.gz") for p, _ in results])
-                                                                              
-    
+    features_tab = pd.DataFrame([x for _, x in results])
+
+    features_tab["label"] = [labels_dict[p] for p,_ in results]
+    features_tab.index = [p.removesuffix(".nii.gz") for p, _ in results]
     features_tab.index.name = "file"
-    features_tab["label"] = [labels_dict[p] for p in features_tab.index]
+
+    
     features_tab.to_csv("features_tab.csv", index=True)
     features_tab.to_parquet("features_tab.parquet", index=True)
 
