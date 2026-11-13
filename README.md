@@ -142,14 +142,15 @@ The overall preprocessing and classification pipeline can therefore be summarize
 ```mermaid
 flowchart LR
     A["Raw DaT scan<br/>NIfTI (.nii.gz)"] 
-    --> B["RAS reorientation"]
-    --> C["2 mm isotropic<br/>resampling"]
+    --> B["RAS reorientation and 2 mm isotropic<br/>resampling"]
     --> D["Head localization<br/>Largest connected component"]
-    --> E["Bilateral striatal<br/>localization"]
-    --> F["48 × 48 × 48<br/>spatial crop"]
-    --> G["Robust intensity<br/>normalization<br/>1st–99th percentile"]
-    --> H["3D DenseNet-121"]
-    --> I{"Classification"}
+    D--> E["297 Features :<br/> Imaging biomarkers"]
+    E-->F1["Light GBM"]
+    D--> F2["Bilateral striatal<br/>localization : 48 × 48 × 48<br/>spatial crop"]
+    --> G["Robust intensity<br/>normalization<br/>Min-max normalization"]
+    --> H["3D DenseNet<br/> 8-view TTA"]
+    --> I{"Classification : Logistic regression on logits"}
+    F1-->I
     --> J["Normal<br/>0"]
     I --> K["Pathological<br/>1"]
 ```
