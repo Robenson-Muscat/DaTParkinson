@@ -144,12 +144,11 @@ flowchart LR
     A["Raw DaT scan<br/>NIfTI (.nii.gz)"] 
     --> B["RAS reorientation and 2 mm isotropic<br/>resampling"]
     --> D["Head localization<br/>Largest connected component"]
-    D--> E["297 Features :<br/> Imaging biomarkers"]
+    D--> E["Feature extraction :<br/>297 Imaging biomarkers"]
     E-->F1["Light GBM"]
     D--> F2["Bilateral striatal<br/>localization : 48 × 48 × 48<br/>spatial crop"]
-    --> G["Robust intensity<br/>normalization<br/>Min-max normalization"]
-    --> H["3D DenseNet<br/> 8-view TTA"]
-    --> I{"Classification : Logistic regression on logits"}
+    --> H["3D DenseNet<br/>"]
+    --> I{"Model Stacking : Logistic regression "}
     F1-->I
     --> J["Normal<br/>0"]
     I --> K["Pathological<br/>1"]
