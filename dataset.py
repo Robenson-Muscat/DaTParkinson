@@ -1,10 +1,10 @@
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 from pathlib import Path
-
+import torch
 import nibabel as nib
 import pandas as pd
-
+from torch.utils.data import Dataset, DataLoader
 
 
 def create_cases_dataframe(df, nifti_dir):
@@ -100,3 +100,72 @@ def create_train_val_indices(cases):
 
 
 
+class DaTVolumeDataset(Dataset):
+    """
+    Dataset PyTorch for  DaTScan volumes (.nii.gz). Useful for data analysis
+
+    Parameters
+    ----------
+    data_dir : str | Path
+        Folder with Files .nii.gz.
+    csv_file : str | Path, optional
+        CSV with labels.
+    transform : callable, optional
+        Preprocessing/ data augmentation.
+    return_spacing : bool
+        Returns the voxel spacing.
+    """
+
+    def __init__(
+        self,
+        paths,
+        labels=None,
+        transform=None
+    ):
+    
+        self.paths = list(paths)
+
+        self.labels = (
+            None if labels is None
+            else np.asarray(labels, dtype=np.float32))
+
+        self.transform = transform
+
+        if self.labels is not None and len(self.paths) != len(self.labels):
+
+            raise ValueError("Number of volumes and labels differ.")
+
+
+    def __len__(self):
+        return len(self.paths)
+
+
+    def __getitem__(self, idx):
+
+        volume = np.load(self.paths[idx], mmap_mode="r")
+        volume = np.array(volume, dtype=np.float32, copy=True)
+
+        # Normalisation min-max
+        v_min = volume.min()
+        v_max = volume.max()
+
+        if v_max > v_min:
+            volume = (volume - v_min) / (v_max - v_min)
+        else:
+            volume = np.zeros_like(volume)
+
+        # (D,H,W) -> (C,D,H,W)
+        image = torch.from_numpy(volume).unsqueeze(0)
+
+        if self.transform is not None:
+
+            image = self.transform(image)
+
+
+        result = {"image": image}
+
+        if self.labels is not None:
+
+            result["label"] = torch.tensor(self.labels[idx], dtype=torch.float32)
+
+        return result
