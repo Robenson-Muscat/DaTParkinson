@@ -1,4 +1,4 @@
-# Creates features for voxels
+""" Creates radiomic features for voxels"""
 
 import os
 import numpy as np
@@ -17,7 +17,6 @@ CSV_PATH = DATA_ROOT / "train_labels.csv"
 
 
 TARGET_SIZE = 112
-QUANTILES = (10, 50, 70, 75, 90, 95, 97, 98, 99, 99.5, 99.9)
 
 
 
@@ -43,9 +42,7 @@ def spatial_features(v, stats=None):
 
     center, std, idx, threshold = stats.hotspot(99.0)
     f = list(center / n) + list(std / n)
-    f += [len(idx) / v.size, float(v.ravel()[np.flatnonzero(
-        v.ravel() >= threshold
-    )].mean())]
+    f += [len(idx) / v.size, float(v.ravel()[np.flatnonzero(v.ravel() >= threshold)].mean())]
     #f = list(mean / n) + list(std / n)
     #f += [len(idx) / v.size,float(v[idx[:, 0], idx[:, 1], idx[:, 2]].mean())]
 
@@ -360,8 +357,7 @@ if __name__=="__main__":
     features_tab.index = [p.removesuffix(".nii.gz") for p, _ in results]
     features_tab.index.name = "file"
 
-    
-    features_tab.to_csv("features_tab.csv", index=True)
-    features_tab.to_parquet("features_tab.parquet", index=True)
+    features_tab.to_csv("data/radiomic_features.csv", index=True)
+    features_tab.to_parquet("data/radiomic_features.parquet", index=True)
 
 
