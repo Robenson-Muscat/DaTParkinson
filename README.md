@@ -128,6 +128,23 @@ A fixed random seed is used to make the split reproducible.
 
 The preprocessing pipeline is deterministic and identical for the training and validation sets. The validation set is kept as an **independent hold-out test set** and is not used during model training or selection. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training.
 
+### Radiomic feature extraction
+
+In addition to the 3D CNN, a set of handcrafted **radiomic features** is extracted from each preprocessed DaT volume to provide complementary quantitative information to the image-based model.
+
+Each volume is first resampled to **2 mm isotropic spacing** and resized to **112 × 112 × 112** voxels. Feature extraction is then performed using three complementary groups of descriptors:
+
+- **Intensity and volume statistics:** global and central-region intensity distributions, including percentiles, mean, standard deviation, skewness and kurtosis. Ratios between intensity percentiles are also computed to characterize the uptake distribution independently of its absolute intensity scale.
+
+- **Spatial and regional features:** the centroid and spatial dispersion of high-intensity voxels (hotspot), their relative volume and mean intensity, as well as intensity statistics within cubic regions centered on the hotspot at different spatial scales. Additional features describe intensity asymmetry across the three spatial axes and the distribution of uptake within a 4 × 4 × 4 spatial grid.
+
+- **Clinical and morphological features:** background tissue intensity statistics and striatal binding ratio (SBR) estimates are calculated using high-intensity regions defined by several percentile thresholds (97th to 99.9th percentiles). The shape of these regions is characterized through covariance eigenvalues, providing descriptors of their spatial extent, elongation, flatness and sphericity. Further features quantify subregional uptake distributions, inter-lobe asymmetry, histogram entropy, intensity energy and local intensity differences.
+
+These handcrafted descriptors are concatenated into a single feature vector for each examination and stored in a tabular dataset. The resulting **297 imaging biomarkers** are used as input to a LightGBM classifier, which complements the volumetric representations learned by DenseNet-121.
+
+This combination allows the ensemble to exploit both learned 3D image representations and explicitly quantified intensity, spatial, morphological and texture characteristics.
+
+
 ### Classification model
 
 The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network.
@@ -171,40 +188,7 @@ At inference time, the predictions of the final base models are passed to the tr
 
 This approach allows the CNN and LightGBM to capture complementary information while ensuring that the meta-model is trained on predictions generated without direct training exposure to the corresponding observations.
 
-The overall preprocessing, feature extraction and classification pipeline can therefore be summarized as:
-
-```mermaid
-flowchart TD
-    A["Raw DaT scan<br/>NIfTI (.nii.gz)"]
-    --> B["RAS reorientation and<br/>2 mm isotropic resampling"]
-    --> C["Head localization<br/>Largest connected component"]
-
-    C --> D["Feature extraction<br/>297 imaging biomarkers"]
-    C --> E["Bilateral striatal localization<br/>48 × 48 × 48 spatial crop"]
-
-    D --> F["LightGBM"]
-    E --> G["3D DenseNet-121"]
-
-    subgraph CV["Repeated stratified K-fold OOF generation"]
-        direction TB
-        H["Outer training fold"]
-        --> I["Inner validation split<br/>Select CNN epochs and<br/>LightGBM boosting iterations"]
-        I --> J["Retrain both base models<br/>on the full outer training fold"]
-        J --> K["Predict on outer validation fold<br/>Generate OOF predictions"]
-    end
-
-    F --> CV
-    G --> CV
-
-    K --> L["OOF meta-feature matrix<br/>CNN and LightGBM predictions"]
-    L --> M["Logistic Regression<br/>Meta-model"]
-    M --> N["Final pathological probability"]
-    N --> O["Normal (0) / Pathological (1)"]
-
-    style CV fill:#eaf2ff,stroke:#4b78b8
-```
-
-
+The stacking procedure has been executed [rigorously](https://www.emergentmind.com/topics/stacking-ensemble-architecture/) .
 
 
 ## Performance metric
