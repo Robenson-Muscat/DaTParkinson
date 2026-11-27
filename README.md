@@ -125,7 +125,7 @@ The dataset is divided into training and validation subsets using a **stratified
 
 A fixed random seed is used to make the split reproducible.
 
-The preprocessing pipeline is deterministic and identical for the training and validation sets. The validation seet is used as a **hold-out test set**. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training. I
+The preprocessing pipeline is deterministic and identical for the training and validation sets. The validation set is kept as an **independent hold-out test set** and is not used during model training or selection. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training.
 
 ### Classification model
 
@@ -154,6 +154,53 @@ flowchart LR
     I --> K["Pathological<br/>1"]
 ```
 
+### Model stacking and nested cross-validation
+
+To improve classification performance, a **stacking ensemble** is used to combine predictions from two complementary base models: the 3D DenseNet-121 CNN, which learns directly from volumetric images, and a LightGBM classifier, which operates on the 297 extracted imaging biomarkers.
+
+The stacking procedure relies on **out-of-fold (OOF) predictions** generated through repeated stratified K-fold cross-validation. For each outer fold, both base models are trained using only the corresponding training partition, and predictions are generated for the held-out fold. These predictions are therefore obtained from models that have not seen the corresponding observations during training.
+
+An additional **inner validation split** is performed within each outer training partition to select the CNN training duration (number of epochs) and the optimal number of boosting iterations for LightGBM. The selected configurations are then retrained using the entire outer training partition before generating predictions on the outer validation fold. This nested model-selection strategy helps prevent information from the outer validation fold from influencing model selection.
+
+The resulting OOF predictions from both base models are combined into a meta-feature matrix. A **Logistic Regression meta-model** is then trained on these OOF predictions to learn how to combine the two classifiers.
+
+At inference time, the predictions of the final base models are passed to the trained Logistic Regression model, which produces the final pathological probability.
+
+This approach allows the CNN and LightGBM to capture complementary information while ensuring that the meta-model is trained on predictions generated without direct training exposure to the corresponding observations.
+
+The overall preprocessing, feature extraction and classification pipeline can therefore be summarized as:
+
+```mermaid
+flowchart TD
+    A["Raw DaT scan<br/>NIfTI (.nii.gz)"]
+    --> B["RAS reorientation and<br/>2 mm isotropic resampling"]
+    --> C["Head localization<br/>Largest connected component"]
+
+    C --> D["Feature extraction<br/>297 imaging biomarkers"]
+    C --> E["Bilateral striatal localization<br/>48 × 48 × 48 spatial crop"]
+
+    D --> F["LightGBM"]
+    E --> G["3D DenseNet-121"]
+
+    subgraph CV["Repeated stratified K-fold OOF generation"]
+        direction TB
+        H["Outer training fold"]
+        --> I["Inner validation split<br/>Select CNN epochs and<br/>LightGBM boosting iterations"]
+        I --> J["Retrain both base models<br/>on the full outer training fold"]
+        J --> K["Predict on outer validation fold<br/>Generate OOF predictions"]
+    end
+
+    F --> CV
+    G --> CV
+
+    K --> L["OOF meta-feature matrix<br/>CNN and LightGBM predictions"]
+    L --> M["Logistic Regression<br/>Meta-model"]
+    M --> N["Final pathological probability"]
+    N --> O["Normal (0) / Pathological (1)"]
+
+    style CV fill:#eaf2ff,stroke:#4b78b8
+```
+
 
 
 ## Performance metric
@@ -169,20 +216,26 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 | Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
 |:--|--:|--:|--:|--:|
 | Without preprocessing and an image-based prediction | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
-| **My Method : With preprocessing and model stacking** | **0.2313** | **0.9687** | **0.3045** | **0.9415** |
+| **My Method (preprocessing + model stacking)** | **0.2313** | **0.9687** | **0.3045** | **0.9415** |
 
 
 
-## Training and inference
 
-```
-python train_and_evaluate.ipynb
-```
-The checkpoints are saved.
+### Train/validation split
 
-The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data.  Because this is a code execution challenge, you will not see the test examinations directly. Instead, your submitted code reads the test images at inference time and generates predictions for each one.
+The dataset is divided into training and validation subsets using a **stratified 80/20 split**. Stratification is performed using the binary pathological label to preserve approximately the same proportion of normal and abnormal examinations in both subsets.
 
-The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing).
+A fixed random seed is used to make the split reproducible.
 
-The inference.py file is designed to comply with the code submission format. Please check out the following [website](https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/page/989/) for more details
+The preprocessing pipeline is deterministic and identical for the training and validation sets. The validation set is kept as an **independent hold-out test set** and is not used during model training or selection. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training.
+
+### Classification model
+
+The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network.
+
+The model receives a single-channel 3D volume of size **48 × 48 × 48** and produces a single output logit corresponding to the probability of a pathological DaT scan.
+
+DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
+
+The model is trained using the **binary cross-entropy loss** and optimized with **Adam**.
 
