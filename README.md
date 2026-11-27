@@ -125,7 +125,7 @@ The dataset is divided into training and validation subsets using a **stratified
 
 A fixed random seed is used to make the split reproducible.
 
-The preprocessing pipeline is deterministic and identical for the training and validation sets. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training.
+The preprocessing pipeline is deterministic and identical for the training and validation sets. The validation seet is used as a **hold-out test set**. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training. I
 
 ### Classification model
 
@@ -135,7 +135,7 @@ The model receives a single-channel 3D volume of size **48 × 48 × 48** and pro
 
 DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
 
-The model is trained using the **binary cross-entropy loss** and optimized with **AdamW**.
+The model is trained using the **binary cross-entropy loss** and optimized with **Adam**.
 
 The overall preprocessing and classification pipeline can therefore be summarized as:
 
@@ -168,17 +168,17 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 
 | Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
 |:--|--:|--:|--:|--:|
-| Without preprocessing | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
-| **With preprocessing(Head Localization + Bilateral striatal localization + intensity normalization)** | **0.2752** | **0.9537** | **0.3545** | **0.9208** |
+| Without preprocessing and an image-based prediction | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
+| **With preprocessing and model stacking(image-based and feature-based branches)** | **0.2313** | **0.9687** | **0.3045** | **0.9415** |
 
 
 
 ## Training and inference
 
 ```
-python train.py
+python train_and_evaluate.ipynb
 ```
-The checkpoints are saved in the folder `ckpts/`.
+The checkpoints are saved.
 
 The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data.  Because this is a code execution challenge, you will not see the test examinations directly. Instead, your submitted code reads the test images at inference time and generates predictions for each one.
 
