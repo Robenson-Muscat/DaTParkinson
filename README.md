@@ -182,7 +182,7 @@ The stacking procedure relies on **out-of-fold (OOF) predictions** generated thr
 
 An additional **inner validation split** is performed within each outer training partition to select the CNN training duration (number of epochs) and the optimal number of boosting iterations for LightGBM. The selected configurations are then retrained using the entire outer training partition before generating predictions on the outer validation fold. This nested model-selection strategy helps prevent information from the outer validation fold from influencing model selection.
 
-The resulting OOF predictions from both base models are combined into a meta-feature matrix. A **Logistic Regression meta-model** is then trained on these OOF predictions to learn how to combine the two classifiers.
+The resulting OOF predictions from both base models are combined into a meta-feature matrix to train a meta-model. A **Logistic Regression meta-model** is then trained on these OOF predictions to learn how to combine the two classifiers.
 
 At inference time, the predictions of the final base models are passed to the trained Logistic Regression model, which produces the final pathological probability.
 
