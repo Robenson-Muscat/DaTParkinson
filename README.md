@@ -191,6 +191,17 @@ This approach allows the CNN and LightGBM to capture complementary information w
 The stacking procedure has been executed [rigorously](https://www.emergentmind.com/topics/stacking-ensemble-architecture/) .
 
 
+### Data Augmentation and Test-Time Augmentation (TTA)
+
+Data augmentation is used during training to improve the model's generalization ability and reduce overfitting. Since the dataset is relatively limited, applying spatial transformations increases the diversity of training samples and encourages the 3D CNN to learn more robust representations.
+
+Three augmentation strategies were investigated: no augmentation (`none`), flipping (`flip`), and flipping combined with isotropic 3D scaling (`flip_scaling`). The scaling transformation consists of a random zoom around the centre of the volume, with a scale factor sampled uniformly between 0.85 and 1.15. It is applied independently with a probability of 50%. This transformation modifies the apparent spatial extent of the structures while preserving their relative anatomical organization. Combined with flipping, it exposes the model to a wider range of spatial configurations and scale variations.
+
+At inference time, **8-view Test-Time Augmentation (8-view TTA)** is applied by generating eight predictions from different valid views of the same input volume. The predictions are then aggregated to obtain the final probability. This approach reduces the dependence of the model on a single input view and can improve prediction stability.
+
+In our experiments, **8-view TTA combined with `flip_scaling` achieved better results than the same inference strategy combined with `flip` or `none`**. A plausible explanation is that training with both flipping and random zooming makes the model more robust to spatial variations, allowing it to benefit more effectively from the multiple views generated during inference. Therefore, `flip_scaling` combined with 8-view TTA was selected as the preferred configuration among the evaluated strategies.
+
+
 ## Performance metric
 
 Leaderboard performance is evaluated according to log loss. Log loss (a.k.a. logistic loss or cross-entropy loss) penalizes confident but incorrect predictions. It also rewards confidence scores that are well-calibrated probabilities, meaning that they accurately reflect the long-run probability of being correct. This is an error metric, so a lower value is better.
