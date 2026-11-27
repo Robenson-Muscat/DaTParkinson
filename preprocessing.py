@@ -17,30 +17,52 @@ from concurrent.futures import ProcessPoolExecutor
 
 import dask
 from dask import delayed
-from dask.diagnostics import ProgressBar
-
-from features import VolumeStats
-
-
-
-
 
 DATA_ROOT = Path("./data/")
 NIFTI_DIR = DATA_ROOT / "niftis"
 CSV_PATH = DATA_ROOT / "train_labels.csv"
 
-CKPTS_DIR = Path("./ckpts/")
-CKPTS_DIR.mkdir(parents=True, exist_ok=True)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-df = pd.read_csv(CSV_PATH)
-
+QUANTILES = (10, 50, 70, 75, 90, 95, 97, 98, 99, 99.5, 99.9)
 
 TARGET_SPACING = 2.0
 TARGET_SIZE = 112
 DEFAULT_CROP_SIZE = 48
 
+df = pd.read_csv(CSV_PATH)
+
+
+
+
+class VolumeStats:
+    """Global statistics and on-demand hotspot calculations."""
+
+    def __init__(self, v):
+        self.v = v
+        self.mean = float(v.mean())
+        self.std = float(v.std())
+
+        # A single call computes all required global percentiles.
+        values = np.percentile(v, QUANTILES)
+        self.percentiles = dict(zip(QUANTILES, values))
+
+        self._indices = {}
+
+    def percentile(self, q):
+        """Global percentile, computed on demand if not already cached."""
+        if q not in self.percentiles:
+            self.percentiles[q] = np.percentile(self.v, q)
+        return self.percentiles[q]
+
+    def indices(self, q):
+        """Coordinates of voxels above percentile q."""
+        if q not in self._indices:
+            threshold = self.percentile(q)
+            self._indices[q] = np.argwhere(self.v >= threshold)
+        return self._indices[q]
+
+    def hotspot(self, q=99.0):
+        idx = self.indices(q)
+        return idx.mean(0), idx.std(0), idx, self.percentile(q)
 
 
 
@@ -189,49 +211,6 @@ def find_hotspot(v, q=99.0, stats=None):
 
 
 
-def trova_hotspot(volume, q=99.5):
-    """
-    Estimate the bilateral hotspot center.
-
-    Returns:
-        center, spread, coordinates, threshold
-
-    Coordinates and centers use voxel coordinates.
-    """
-    volume = _safe_volume(volume)
-
-    positive = volume[volume > 0]
-    fallback = (np.asarray(volume.shape) - 1) / 2
-
-    if positive.size < 10:
-        return fallback, np.zeros(3), np.empty((0, 3), int), 0.0
-
-    threshold = np.percentile(positive, q)
-    coords = np.argwhere(volume >= threshold)
-
-    if len(coords) == 0:
-        return fallback, np.zeros(3), coords, float(threshold)
-
-    # Split along the first voxel axis after canonical orientation.
-    mid = (volume.shape[0] - 1) / 2
-    first = coords[coords[:, 0] < mid]
-    second = coords[coords[:, 0] >= mid]
-
-    centers = []
-
-    if len(first):
-        centers.append(first.mean(axis=0))
-    if len(second):
-        centers.append(second.mean(axis=0))
-
-    # Give both sides equal influence when both are present.
-    center = np.mean(centers, axis=0) if centers else coords.mean(axis=0)
-    spread = coords.std(axis=0)
-
-    return center, spread, coords, float(threshold)
-
-
-
 def normalise_volume(volume):
     """
     Min-Max intensity normalization to [0, 1].
@@ -251,16 +230,13 @@ def normalise_volume(volume):
         return np.zeros_like(volume, dtype=np.float32)
 
     output = np.zeros_like(volume, dtype=np.float32)
-    output[mask] = np.clip(
-        (volume[mask] - lo) / (hi - lo),
-        0.0,
-        1.0)
+    output[mask] = np.clip((volume[mask] - lo) / (hi - lo), 0.0, 1.0)
 
     return output
 
 
 
-def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=False):
+def load_volume_mm(path, mm=TARGET_SPACING, size=TARGET_SIZE, return_metadata=False):
     """
     Load a NIfTI, canonicalize orientation, resample, and center
     a fixed-size cube on the estimated head center.
@@ -276,7 +252,7 @@ def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=Fa
     volume = _safe_volume(img_resampled.get_fdata(dtype=np.float32))
 
     center = estimate_head_center(volume)
-    volume = _crop_or_pad(volume, center, side)
+    volume = _crop_or_pad(volume, center, size)
 
     ## Preserve foreground contrast while retaining zero padding.
     volume  = normalise_volume(volume)
@@ -298,7 +274,7 @@ def load_volume_mm(path, mm=TARGET_SPACING, side=TARGET_SIZE, return_metadata=Fa
 def striatal_hotspot_crop(
     path,
     mm=TARGET_SPACING,
-    side=TARGET_SIZE,
+    size=TARGET_SIZE,
     crop=80,
     hotspot_percentile=99.5,
     return_metadata=False):
@@ -310,14 +286,13 @@ def striatal_hotspot_crop(
         -> robust min-max normalization.
     """
 
-    if crop <= 0 or crop > side:
-        raise ValueError(f"crop must be in the range 1..{side}.")
+    if crop <= 0 or crop > size:
+        raise ValueError(f"crop must be in the range 1..{size}.")
 
     # load_volume_mm now guarantees canonical RAS orientation
-    volume, head_metadata = load_volume_mm(path, mm=mm, side=side, return_metadata=True)
+    volume, head_metadata = load_volume_mm(path, mm=mm, size=size, return_metadata=True)
 
     # Estimate bilateral hotspot center
-    #center, spread, coords, threshold = trova_hotspot(volume, q=hotspot_percentile)
     center, spread, coords, threshold = find_hotspot(volume,q=hotspot_percentile)
 
     # Crop around the estimated striatum
@@ -346,7 +321,7 @@ def preprocess_one(uid, label, nifti_dir, crop=48):
     uid = str(uid)
     path = find_nifti(uid, nifti_dir)
 
-    volume, metadata = estimate_hotspot_center(path, mm=2.0, side=112, crop=crop, return_metadata=True)
+    volume, metadata = striatal_hotspot_crop(path, mm=2.0, size=112, crop=crop, return_metadata=True)
 
     record = {
         "uid": uid,
@@ -446,12 +421,11 @@ def preprocess_dataframe(
 
     return np.stack(volumes)
 
-        
 
 
 if __name__ == "__main__":
     volume_paths, metadata_df = preprocess_dataframe(
     df,
-    nifti_dir="./data/niftis",
+    nifti_dir=NIFTI_DIR,
     crop=48,
     output_dir="./processed_volumes")
