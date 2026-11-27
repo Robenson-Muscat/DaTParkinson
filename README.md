@@ -169,7 +169,7 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 | Preprocessing | Val Log Loss ↓ | Val AUROC ↑ | Test Log Loss ↓ | Test AUROC ↑ |
 |:--|--:|--:|--:|--:|
 | Without preprocessing and an image-based prediction | 0.2987 | 0.9583 | 0.3808 | 0.9168 |
-| **With preprocessing and model stacking(image-based and feature-based branches)** | **0.2313** | **0.9687** | **0.3045** | **0.9415** |
+| **My Method : With preprocessing and model stacking** | **0.2313** | **0.9687** | **0.3045** | **0.9415** |
 
 
 
