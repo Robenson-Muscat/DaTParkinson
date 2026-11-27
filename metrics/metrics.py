@@ -1,4 +1,4 @@
-from sklearn.metrics import roc_auc_score,log_loss
+from sklearn.metrics import roc_auc_score,log_loss, accuracy_score
 import numpy as np
 
 
