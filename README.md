@@ -119,6 +119,7 @@ This normalization preserves the relative spatial distribution of tracer uptake 
 
 ![Preprocessing effects](./images/before_vs_after_7.png)
 
+
 ### Train/validation split
 
 The dataset is divided into training and validation subsets using a **stratified 80/20 split**. Stratification is performed using the binary pathological label to preserve approximately the same proportion of normal and abnormal examinations in both subsets.
@@ -153,6 +154,8 @@ flowchart LR
     --> J["Normal<br/>0"]
     I --> K["Pathological<br/>1"]
 ```
+
+
 
 ### Model stacking and nested cross-validation
 
@@ -203,6 +206,7 @@ flowchart TD
 
 
 
+
 ## Performance metric
 
 Leaderboard performance is evaluated according to log loss. Log loss (a.k.a. logistic loss or cross-entropy loss) penalizes confident but incorrect predictions. It also rewards confidence scores that are well-calibrated probabilities, meaning that they accurately reflect the long-run probability of being correct. This is an error metric, so a lower value is better.
@@ -221,21 +225,16 @@ where 𝑦 is a binary variable indicating whether the examination is abnormal (
 
 
 
-### Train/validation split
+## Training and inference
 
-The dataset is divided into training and validation subsets using a **stratified 80/20 split**. Stratification is performed using the binary pathological label to preserve approximately the same proportion of normal and abnormal examinations in both subsets.
+```
+python train_and_evaluate.ipynb
+```
+The checkpoints are saved.
 
-A fixed random seed is used to make the split reproducible.
+The test set is withheld and is not available for download. Its images are only accessible from within the runtime container, where they are mounted alongside the training data.  Because this is a code execution challenge, you will not see the test examinations directly. Instead, your submitted code reads the test images at inference time and generates predictions for each one.
 
-The preprocessing pipeline is deterministic and identical for the training and validation sets. The validation set is kept as an **independent hold-out test set** and is not used during model training or selection. No data augmentation is initially applied, allowing the effect of the spatial and intensity normalization steps to be evaluated independently before introducing additional variability during training.
+The test examinations are the same NIfTI format as the training data and follow the same conventions (one 3D volume per file, named <uid>.nii.gz, with varying dimensions and voxel spacing).
 
-### Classification model
-
-The preprocessed volumes are used as input to a three-dimensional **DenseNet-121** convolutional neural network.
-
-The model receives a single-channel 3D volume of size **48 × 48 × 48** and produces a single output logit corresponding to the probability of a pathological DaT scan.
-
-DenseNet-121 was selected because its dense connectivity pattern allows features extracted at different depths of the network to be reused throughout the model. This is particularly useful for volumetric medical imaging, where both local uptake patterns and larger-scale anatomical distributions may contribute to the classification.
-
-The model is trained using the **binary cross-entropy loss** and optimized with **Adam**.
+The inference.py file is designed to comply with the code submission format. Please check out the following [website](https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/page/989/) for more details
 
