@@ -44,21 +44,13 @@ class DATScanModel:
         device: str | None = None,
     ) -> None:
 
-        self.checkpoint_paths = [
-            Path(path) for path in checkpoint_paths
-        ]
+        self.checkpoint_paths = [Path(path) for path in checkpoint_paths]
 
         if len(self.checkpoint_paths) == 0:
-            raise ValueError(
-                "No checkpoint was provided."
-            )
+            raise ValueError("No checkpoint was provided.")
 
         if device is None:
-            device = (
-                "cuda"
-                if torch.cuda.is_available()
-                else "cpu"
-            )
+            device = ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.device = torch.device(device)
 
@@ -68,10 +60,7 @@ class DATScanModel:
 
             model = self._create_model()
 
-            self._load_checkpoint(
-                model,
-                checkpoint_path,
-            )
+            self._load_checkpoint(model, checkpoint_path)
 
             model.to(self.device)
             model.eval()
@@ -88,7 +77,7 @@ class DATScanModel:
             spatial_dims=3,
             in_channels=1,
             out_channels=1,
-        )
+            norm=("GROUP", {"num_groups": 8}))
 
     @staticmethod
     def _load_checkpoint(
